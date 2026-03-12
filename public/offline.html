@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Si SAKA - Offline</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f8f7ff 0%, #e8e4ff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1a2e;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 480px;
+        }
+        .icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(124, 92, 252, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2rem;
+        }
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: #7c5cfc;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        .emergency-box {
+            background: white;
+            border: 2px solid #ef4444;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        .emergency-box h2 {
+            color: #ef4444;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .emergency-box a {
+            display: block;
+            color: #7c5cfc;
+            font-weight: 700;
+            font-size: 1.25rem;
+            text-decoration: none;
+            margin-top: 0.5rem;
+        }
+        .retry-btn {
+            display: inline-block;
+            margin-top: 1.5rem;
+            padding: 0.75rem 2rem;
+            background: #7c5cfc;
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .retry-btn:hover { background: #6b4ce0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📡</div>
+        <h1>Anda Sedang Offline</h1>
+        <p>Tidak ada koneksi internet. Beberapa fitur mungkin tidak tersedia.</p>
+        <button class="retry-btn" onclick="window.location.reload()">Coba Lagi</button>
+
+        <div class="emergency-box">
+            <h2>🚨 Dalam Keadaan Darurat?</h2>
+            <p>Hubungi nomor darurat berikut:</p>
+            <a href="tel:110">Polisi: 110</a>
+            <a href="tel:119">Ambulans: 119</a>
+            <a href="tel:129">KemenPPPA: 129</a>
+        </div>
+    </div>
+</body>
+</html>
