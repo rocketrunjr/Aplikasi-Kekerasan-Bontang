@@ -89,6 +89,8 @@ export default function StatusPage() {
     const [statusFilter, setStatusFilter] = useState<ReportStatus | "ALL">("ALL");
 
     useEffect(() => {
+        if (!CURRENT_USER) return;
+
         fetch("/api/reports")
             .then(res => res.json())
             .then(data => {
@@ -102,17 +104,13 @@ export default function StatusPage() {
                 setIsLoading(false);
             });
 
-        if (CURRENT_USER) {
-            fetch("/api/permissions")
-                .then(res => res.json())
-                .then(data => {
-                    const myPerms = data.find((p: { userId: string, canViewData: boolean }) => p.userId === CURRENT_USER);
-                    if (myPerms?.canViewData) {
-                        setCanView(true);
-                    }
-                })
-                .catch(console.error);
-        }
+        fetch("/api/permissions")
+            .then(res => res.json())
+            .then(data => {
+                const myPerms = data.find((p: { userId: string, canViewData: boolean }) => p.userId === CURRENT_USER);
+                setCanView(myPerms?.canViewData === true);
+            })
+            .catch(console.error);
     }, [CURRENT_USER]);
 
     // Confirmation dialog state

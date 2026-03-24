@@ -1,35 +1,16 @@
-"use client";
-
-import { useEffect, useState } from "react";
-
 import { PanicButton } from "@/components/panic-button";
 import { FileText, ShieldCheck, Lock, Phone } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { db } from "@/db";
+import { appSettings } from "@/db/schema";
 
-export default function HomePage() {
-    const router = useRouter();
-    const [settings, setSettings] = useState<{
-        appName: string;
-        appLogoUrl: string;
-        heroHeadline: string;
-        heroSubheadline: string;
-        contactEmail: string;
-        contactPhone: string;
-        footerText: string;
-    } | null>(null);
+// Ensure settings changes reflect quickly on landing page
+export const dynamic = "force-dynamic";
 
-    useEffect(() => {
-        fetch("/api/settings")
-            .then(res => res.json())
-            .then(data => setSettings(data))
-            .catch(console.error);
-    }, []);
-
-    const handlePanic = () => {
-        // In production: capture GPS, send alert, validate captcha
-        router.push("/darurat");
-    };
+export default async function HomePage() {
+    // Trik "flicker" selesai! Kita fetch langsung di server
+    const settingsRows = await db.select().from(appSettings).limit(1);
+    const settings = settingsRows[0] || null;
 
     return (
         <div className="flex flex-col">
@@ -56,7 +37,7 @@ export default function HomePage() {
 
                 {/* Panic Button */}
                 <div className="mt-10 sm:mt-14">
-                    <PanicButton onClick={handlePanic} />
+                    <PanicButton />
                 </div>
 
                 <p className="mt-6 text-xs text-muted-foreground/60">

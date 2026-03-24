@@ -43,12 +43,14 @@ import {
     Loader2,
     Trash2,
     FileEdit,
-    ImageIcon
+    ImageIcon,
+    Printer
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { Report, IncidentPhoto, ReportAction, User } from "@/lib/types";
 import { mockBontangData } from "@/lib/mock-data";
+import { useSession } from "@/lib/auth-client";
 
 const statusConfig: Record<
     string,
@@ -81,6 +83,8 @@ export default function ReportDetailPage({
     params: Promise<{ id: string }>;
 }) {
     const { id } = use(params);
+    const { data: session } = useSession();
+    
     const [showIdentity, setShowIdentity] = useState(false);
     const [actionDialogOpen, setActionDialogOpen] = useState(false);
     const [selectedAction, setSelectedAction] = useState<string>("");
@@ -116,6 +120,9 @@ export default function ReportDetailPage({
     // Officer Assignment state
     const [officers, setOfficers] = useState<User[]>([]);
     const [selectedOfficer, setSelectedOfficer] = useState<string>("");
+
+    // Permission state
+    const [canDownload, setCanDownload] = useState(false);
 
     useEffect(() => {
         // Fetch Report
@@ -159,7 +166,28 @@ export default function ReportDetailPage({
                 }
             })
             .catch(console.error);
-    }, [id]);
+
+        // Fetch permissions for Print feature
+        if (session?.user?.id) {
+            fetch("/api/permissions")
+                .then(res => res.json())
+                .then(data => {
+                    const myPerm = data.find((p: { userId: string; canExportData: boolean }) => p.userId === session?.user?.id);
+                    setCanDownload(myPerm?.canExportData === true);
+                })
+                .catch(console.error);
+        }
+    }, [id, session?.user?.id]);
+
+    // Current print timestamp using isMounted pattern to avoid linter warnings
+    const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setIsMounted(true), 0);
+        return () => clearTimeout(timer);
+    }, []);
+    const printTimestamp = isMounted ? new Date().toLocaleString("id-ID", {
+        day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"
+    }) : "";
 
     if (isLoading) {
         return (
@@ -340,7 +368,7 @@ export default function ReportDetailPage({
                         {report.id}
                     </p>
                 </div>
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex flex-col items-end gap-2">
                     <Badge variant={status.variant} className="rounded-lg text-sm">
                         {status.label}
                     </Badge>
@@ -348,6 +376,12 @@ export default function ReportDetailPage({
                         <span className="text-xs text-muted-foreground font-medium">
                             oleh: {officers.find(o => o.id === report.assignedTo)?.name || report.assignedTo}
                         </span>
+                    )}
+                    {canDownload && (
+                        <Button variant="outline" size="sm" onClick={() => window.print()} className="mt-2 text-xs h-8 rounded-xl bg-card border-primary/20 hover:bg-primary/10 hover:text-primary">
+                            <Printer className="mr-2 h-3.5 w-3.5" />
+                            Cetak Laporan
+                        </Button>
                     )}
                 </div>
             </div>
@@ -927,6 +961,125 @@ export default function ReportDetailPage({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* PRINT ONLY SECTION */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @media print {
+                    body * { visibility: hidden; }
+                    #printable-section, #printable-section * { visibility: visible; }
+                    #printable-section { position: absolute; left: 0; top: 0; width: 100%; display: block !important; background: white; color: black; padding: 20px; }
+                    @page { margin: 1.5cm; }
+                }
+            `}} />
+            <div id="printable-section" className="hidden print:block font-sans">
+                {incidentReport ? (
+                    <div className="space-y-6">
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b-2 border-slate-200 pb-4">
+                            <div className="flex items-center gap-3">
+                                <FileText className="h-8 w-8 text-teal-600" />
+                                <h1 className="text-2xl font-bold text-slate-900">Laporan Insiden Petugas</h1>
+                            </div>
+                            <div className="flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-teal-700">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span className="text-sm font-semibold">Terisi</span>
+                            </div>
+                        </div>
+
+                        {/* Info Grid */}
+                        <div className="grid grid-cols-2 gap-6 text-sm">
+                            <div>
+                                <p className="font-semibold text-slate-500 mb-1">ID Laporan</p>
+                                <p className="font-medium text-slate-900">{report.id}</p>
+                            </div>
+                            <div>
+                                <p className="font-semibold text-slate-500 mb-1">Tanggal Diisi</p>
+                                <p className="font-medium text-slate-900">
+                                    {new Date(incidentReport.createdAt).toLocaleDateString("id-ID", {
+                                        day: "numeric",
+                                        month: "long",
+                                        year: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit"
+                                    })}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="font-semibold text-slate-500 mb-1">Petugas (Penulis Laporan)</p>
+                                <p className="font-medium text-slate-900">{incidentReport.officerName}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="my-6 border-t border-slate-200"></div>
+
+                        {/* Demografi & Pelapor */}
+                        <div className="mb-6">
+                            <h2 className="text-lg font-bold text-slate-800 mb-3">Data Korban & Pelapor</h2>
+                            <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nama Korban</p>
+                                    <p className="font-medium text-slate-900">{report.maskedName} <span className="text-xs text-slate-400 font-normal">(Disensor)</span></p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Telepon Pelapor</p>
+                                    <p className="font-medium text-slate-900">{report.contactPhone || "-"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Kategori Kekerasan</p>
+                                    <p className="font-medium text-slate-900">{report.violenceCategory}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Kategori Korban</p>
+                                    <p className="font-medium text-slate-900">{report.kategoriKorban || "-"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Jenis Kelamin</p>
+                                    <p className="font-medium text-slate-900">{report.jenisKelamin || "-"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Rentang Usia</p>
+                                    <p className="font-medium text-slate-900">{report.rentangUsia || "-"}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Laporan Content */}
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-2">Kronologi Penanganan</h3>
+                                <div className="rounded-xl bg-slate-50 p-4 text-slate-800 text-sm whitespace-pre-line border border-slate-100">
+                                    {incidentReport.kronologi}
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-2">Tindakan Yang Diambil</h3>
+                                <div className="rounded-xl bg-slate-50 p-4 text-slate-800 text-sm whitespace-pre-line border border-slate-100">
+                                    {incidentReport.tindakan}
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-2">Rekomendasi</h3>
+                                <div className="rounded-xl bg-slate-50 p-4 text-slate-800 text-sm whitespace-pre-line border border-slate-100">
+                                    {incidentReport.rekomendasi}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Watermark/Footer */}
+                        <div className="mt-12 pt-4 border-t border-slate-200 text-xs text-slate-400">
+                            <p>Dokumen ini dicetak dari Sistem Informasi Si SAKA Kota Bontang.</p>
+                            <p>Dicetak oleh: <span className="font-medium text-slate-600">{session?.user?.name || session?.user?.email || "Admin"}</span></p>
+                            <p>Waktu Cetak: <span className="font-medium text-slate-600">{printTimestamp}</span></p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-10">
+                        <h2 className="text-xl font-bold text-slate-800">Laporan Insiden Belum Diisi</h2>
+                        <p className="text-slate-500">Petugas belum mengisi laporan insiden untuk kasus ini.</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

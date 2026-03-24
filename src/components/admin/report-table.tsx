@@ -36,14 +36,16 @@ const typeConfig: Record<string, { label: string; className: string }> = {
 interface ReportTableProps {
     reports: Report[];
     onDelete?: (id: string, name: string) => void;
+    startIndex?: number;
 }
 
-export function ReportTable({ reports, onDelete }: ReportTableProps) {
+export function ReportTable({ reports, onDelete, startIndex = 1 }: ReportTableProps) {
     return (
         <div className="rounded-2xl border border-border/50 bg-card shadow-sm">
             <Table>
                 <TableHeader>
                     <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-12">No</TableHead>
                         <TableHead className="w-28">ID</TableHead>
                         <TableHead>Nama Korban</TableHead>
                         <TableHead className="w-28">Tipe</TableHead>
@@ -54,11 +56,14 @@ export function ReportTable({ reports, onDelete }: ReportTableProps) {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {reports.map((report) => {
+                    {reports.map((report, index) => {
                         const status = statusConfig[report.status];
                         const type = typeConfig[report.reportType];
                         return (
                             <TableRow key={report.id} className="group">
+                                <TableCell className="text-sm text-muted-foreground">
+                                    {startIndex + index}
+                                </TableCell>
                                 <TableCell className="font-mono text-xs text-muted-foreground">
                                     {report.id}
                                 </TableCell>

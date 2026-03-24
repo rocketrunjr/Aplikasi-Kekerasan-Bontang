@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
     Table,
@@ -12,7 +11,6 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Lock, Shield, Stethoscope, UserCheck, Eye, FileEdit, Download, Loader2 } from "lucide-react";
-import { UserRole } from "@/lib/types";
 
 const roleIcon: Record<string, React.ElementType> = {
     admin: Shield,
@@ -127,7 +125,7 @@ export default function AksesKontrolPage() {
                 <Separator orientation="vertical" className="h-5" />
                 <div className="flex items-center gap-2 text-sm">
                     <Download className="h-4 w-4 text-red-500" />
-                    <span className="text-muted-foreground">Ekspor — Dapat mengunduh data korban</span>
+                    <span className="text-muted-foreground">Unduh — Dapat mengunduh laporan petugas</span>
                 </div>
             </div>
 
@@ -153,7 +151,7 @@ export default function AksesKontrolPage() {
                             <TableHead className="text-center">
                                 <span className="flex items-center justify-center gap-1.5">
                                     <Download className="h-3.5 w-3.5" />
-                                    Ekspor
+                                    Unduh
                                 </span>
                             </TableHead>
                         </TableRow>

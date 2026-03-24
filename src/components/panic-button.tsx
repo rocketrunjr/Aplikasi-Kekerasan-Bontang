@@ -40,22 +40,27 @@ export function PanicButton({ onClick }: PanicButtonProps) {
             let longitude = BONTANG_LNG;
 
             try {
-                const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                    if (!navigator.geolocation) {
-                        reject(new Error("not supported"));
-                        return;
-                    }
-                    navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        enableHighAccuracy: false,
-                        timeout: 15000,
-                        maximumAge: 60000,
-                    });
-                });
+                const position = await Promise.race([
+                    new Promise<GeolocationPosition>((resolve, reject) => {
+                        if (!navigator.geolocation) {
+                            reject(new Error("not supported"));
+                            return;
+                        }
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: false,
+                            timeout: 10000,
+                            maximumAge: 60000,
+                        });
+                    }),
+                    new Promise<never>((_, reject) => 
+                        setTimeout(() => reject(new Error("GPS timeout fallback")), 5000)
+                    )
+                ]);
                 latitude = position.coords.latitude;
                 longitude = position.coords.longitude;
             } catch {
                 // GPS unavailable — silently use fallback coordinates (Bontang center)
-                console.warn("GPS unavailable, using fallback Bontang coordinates");
+                console.warn("GPS unavailable or timed out, using fallback Bontang coordinates");
             }
 
             // 2. Create panic report via API

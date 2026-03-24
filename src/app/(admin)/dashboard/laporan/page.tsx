@@ -24,8 +24,21 @@ import {
 import Link from "next/link";
 import { useEffect } from "react";
 import { Report } from "@/lib/types";
+import { authClient } from "@/lib/auth-client";
 
 export default function LaporanListPage() {
+    const session = authClient.useSession();
+    
+    // Current print timestamp using isMounted pattern to avoid linter warnings
+    const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setIsMounted(true), 0);
+        return () => clearTimeout(timer);
+    }, []);
+    const printTimestamp = isMounted ? new Date().toLocaleString("id-ID", {
+        day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"
+    }) : "";
+
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -281,10 +294,87 @@ export default function LaporanListPage() {
                 </div>
             ) : filtered.length > 0 ? (
                 <div className="space-y-4">
-                    <ReportTable
-                        reports={paginatedReports}
-                        onDelete={handleDeleteClick}
-                    />
+                    <style dangerouslySetInnerHTML={{
+                        __html: `
+                        @media print {
+                            body * { visibility: hidden; }
+                            #printable-area, #printable-area * { visibility: visible; }
+                            #printable-area { position: absolute; left: 0; top: 0; width: 100%; display: block !important; padding: 0; background: white; color: black; }
+                            .screen-only-table { display: none !important; }
+                            .print-only-wrapper { display: block !important; }
+                            @page { margin: 1cm; size: landscape; }
+                            /* The native tfoot repeats on every page */
+                            #print-full-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                            #print-full-table thead { display: table-header-group; }
+                            #print-full-table tfoot { display: table-footer-group; }
+                            #print-full-table th, #print-full-table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; }
+                            #print-full-table th { background: #f8fafc; font-weight: 600; font-size: 11px; text-transform: uppercase; color: #64748b; }
+                            #print-full-table td { color: #1e293b; }
+                            #print-full-table tfoot td { border: none; font-size: 9px; color: #94a3b8; padding-top: 10px; }
+                        }
+                    `}} />
+                    <div id="printable-area" className="w-full">
+                        {/* Screen-only: show paginated table */}
+                        <div className="screen-only-table">
+                            <ReportTable
+                                reports={paginatedReports}
+                                onDelete={handleDeleteClick}
+                                startIndex={(currentPage - 1) * itemsPerPage + 1}
+                            />
+                        </div>
+
+                        {/* Print-only: native HTML table with tfoot that repeats on every page */}
+                        <div className="print-only-wrapper hidden">
+                            <table id="print-full-table">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>ID</th>
+                                        <th>Nama Korban</th>
+                                        <th>Tipe</th>
+                                        <th>Kategori</th>
+                                        <th>Status</th>
+                                        <th>Tanggal</th>
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        <td colSpan={7}>
+                                            <div style={{borderTop: '1px solid #e2e8f0', paddingTop: '6px', marginTop: '4px'}}>
+                                                <span>Dokumen ini dicetak dari Sistem Informasi Si SAKA — Kota Bontang</span><br/>
+                                                <span>Dicetak oleh: <strong style={{color: '#475569'}}>{session.data?.user?.name || session.data?.user?.email || "Admin"}</strong></span><br/>
+                                                <span>Waktu Cetak: <strong style={{color: '#475569'}}>{printTimestamp}</strong></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                                {(() => {
+                                    const ROWS_PER_PAGE = 15;
+                                    const statusLabel: Record<string, string> = { NEW: "Baru", RESPONDING: "Ditanggapi", CONTACTED: "Proses", ARCHIVED: "Selesai" };
+                                    const typeLabel: Record<string, string> = { PANIC_BUTTON: "Darurat", FORM: "Formulir" };
+                                    const chunks: typeof filtered[] = [];
+                                    for (let i = 0; i < filtered.length; i += ROWS_PER_PAGE) {
+                                        chunks.push(filtered.slice(i, i + ROWS_PER_PAGE));
+                                    }
+                                    return chunks.map((chunk, ci) => (
+                                        <tbody key={ci}>
+                                            {chunk.map((r, ri) => (
+                                                <tr key={r.id} style={ri === chunk.length - 1 && ci < chunks.length - 1 ? {pageBreakAfter: 'always'} : undefined}>
+                                                    <td>{ci * ROWS_PER_PAGE + ri + 1}</td>
+                                                    <td style={{fontFamily: 'monospace', fontSize: '11px'}}>{r.id}</td>
+                                                    <td>{r.maskedName}</td>
+                                                    <td>{typeLabel[r.reportType] || r.reportType}</td>
+                                                    <td>{r.violenceCategory}</td>
+                                                    <td>{statusLabel[r.status] || r.status}</td>
+                                                    <td>{new Date(r.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    ));
+                                })()}
+                            </table>
+                        </div>
+                    </div>
 
                     {/* Pagination Controls */}
                     {totalPages > 1 && (

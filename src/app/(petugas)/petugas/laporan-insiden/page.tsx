@@ -63,6 +63,7 @@ export default function LaporanInsidenPage() {
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [canView, setCanView] = useState(false);
+    const [canDownload, setCanDownload] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
@@ -70,6 +71,8 @@ export default function LaporanInsidenPage() {
     const [selectedReport, setSelectedReport] = useState<string>("");
 
     useEffect(() => {
+        if (!CURRENT_USER) return;
+
         fetch("/api/reports")
             .then(res => res.json())
             .then(data => {
@@ -91,18 +94,15 @@ export default function LaporanInsidenPage() {
                 setIsLoading(false);
             });
 
-        if (CURRENT_USER) {
-            fetch("/api/permissions")
-                .then(res => res.json())
-                .then(data => {
-                    const myPerms = data.find((p: { userId: string, canViewData: boolean }) => p.userId === CURRENT_USER);
-                    if (myPerms?.canViewData) {
-                        setCanView(true);
-                    }
-                })
-                .catch(console.error);
-        }
-    }, [CURRENT_USER, setCanView]);
+        fetch("/api/permissions")
+            .then(res => res.json())
+            .then(data => {
+                const myPerms = data.find((p: { userId: string, canViewData: boolean, canExportData: boolean }) => p.userId === CURRENT_USER);
+                setCanView(myPerms?.canViewData === true);
+                setCanDownload(myPerms?.canExportData === true);
+            })
+            .catch(console.error);
+    }, [CURRENT_USER]);
 
     const report = reports.find((r) => r.id === selectedReport);
 
@@ -163,6 +163,16 @@ export default function LaporanInsidenPage() {
             });
 
     }, [selectedReport]);
+
+    // Current print timestamp
+    const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setIsMounted(true), 0);
+        return () => clearTimeout(timer);
+    }, []);
+    const printTimestamp = isMounted ? new Date().toLocaleString("id-ID", {
+        day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"
+    }) : "";
 
     const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -640,23 +650,138 @@ export default function LaporanInsidenPage() {
                             </div>
                         </div>
 
-                        <div className="mt-6 flex gap-3">
-                            <Button
-                                variant="outline"
-                                className="gap-2 rounded-xl"
-                                onClick={() => window.print()}
-                            >
-                                <Printer className="h-4 w-4" />
-                                Cetak
-                            </Button>
-                            <Button variant="outline" className="gap-2 rounded-xl">
-                                <Download className="h-4 w-4" />
-                                Download PDF
-                            </Button>
-                        </div>
+                        {canDownload && (
+                            <div className="mt-6 flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="gap-2 rounded-xl"
+                                    onClick={() => window.print()}
+                                >
+                                    <Printer className="h-4 w-4" />
+                                    Cetak
+                                </Button>
+                                <Button variant="outline" className="gap-2 rounded-xl">
+                                    <Download className="h-4 w-4" />
+                                    Download PDF
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
+
+            {/* PRINT ONLY SECTION */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @media print {
+                    body * { visibility: hidden; }
+                    #printable-section, #printable-section * { visibility: visible; }
+                    #printable-section { position: absolute; left: 0; top: 0; width: 100%; display: block !important; background: white; color: black; padding: 20px; }
+                    @page { margin: 1.5cm; }
+                }
+            `}} />
+            <div id="printable-section" className="hidden print:block font-sans">
+                {generated && report ? (
+                    <div className="space-y-6">
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b-2 border-slate-200 pb-4">
+                            <div className="flex items-center gap-3">
+                                <FileText className="h-8 w-8 text-teal-600" />
+                                <h1 className="text-2xl font-bold text-slate-900">Laporan Insiden Petugas</h1>
+                            </div>
+                            <div className="flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-teal-700">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span className="text-sm font-semibold">Terisi</span>
+                            </div>
+                        </div>
+
+                        {/* Info Grid */}
+                        <div className="grid grid-cols-2 gap-6 text-sm">
+                            <div>
+                                <p className="font-semibold text-slate-500 mb-1">ID Laporan</p>
+                                <p className="font-medium text-slate-900">{report.id}</p>
+                            </div>
+                            <div>
+                                <p className="font-semibold text-slate-500 mb-1">Tanggal Insiden</p>
+                                <p className="font-medium text-slate-900">
+                                    {formatDate(report.createdAt)}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="font-semibold text-slate-500 mb-1">Petugas (Penulis Laporan)</p>
+                                <p className="font-medium text-slate-900">{session.data?.user?.name || "Petugas"}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="my-6 border-t border-slate-200"></div>
+
+                        {/* Demografi & Pelapor */}
+                        <div className="mb-6">
+                            <h2 className="text-lg font-bold text-slate-800 mb-3">Data Korban & Pelapor</h2>
+                            <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nama Korban</p>
+                                    <p className="font-medium text-slate-900">{report.maskedName} <span className="text-xs text-slate-400 font-normal">(Disensor)</span></p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Telepon Pelapor</p>
+                                    <p className="font-medium text-slate-900">{report.contactPhone || "-"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Kategori Kekerasan</p>
+                                    <p className="font-medium text-slate-900">{report.violenceCategory}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Kategori Korban</p>
+                                    <p className="font-medium text-slate-900">{report.kategoriKorban || "-"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Jenis Kelamin</p>
+                                    <p className="font-medium text-slate-900">{report.jenisKelamin || "-"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Rentang Usia</p>
+                                    <p className="font-medium text-slate-900">{report.rentangUsia || "-"}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Laporan Content */}
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-2">Kronologi Penanganan</h3>
+                                <div className="rounded-xl bg-slate-50 p-4 text-slate-800 text-sm whitespace-pre-line border border-slate-100">
+                                    {kronologi}
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-2">Tindakan Yang Diambil</h3>
+                                <div className="rounded-xl bg-slate-50 p-4 text-slate-800 text-sm whitespace-pre-line border border-slate-100">
+                                    {tindakan}
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-2">Rekomendasi</h3>
+                                <div className="rounded-xl bg-slate-50 p-4 text-slate-800 text-sm whitespace-pre-line border border-slate-100">
+                                    {rekomendasi}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Watermark/Footer */}
+                        <div className="mt-12 pt-4 border-t border-slate-200 text-xs text-slate-400">
+                            <p>Dokumen ini dicetak dari Sistem Informasi Si SAKA Kota Bontang.</p>
+                            <p>Dicetak oleh: <span className="font-medium text-slate-600">{session.data?.user?.name || session.data?.user?.email || "Petugas"}</span></p>
+                            <p>Waktu Cetak: <span className="font-medium text-slate-600">{printTimestamp}</span></p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-10">
+                        <h2 className="text-xl font-bold text-slate-800">Laporan Insiden Belum Diisi</h2>
+                        <p className="text-slate-500">Petugas belum mengisi atau menyimpan laporan insiden untuk kasus ini.</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
