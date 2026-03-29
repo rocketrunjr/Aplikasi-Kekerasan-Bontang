@@ -16,8 +16,15 @@ export async function POST(req: Request) {
 
         // 1. Verify Turnstile Captcha
         const isDevelopment = process.env.NODE_ENV === "development";
-        const secretKey =
-            process.env.TURNSTILE_SECRET_KEY || "1x0000000000000000000000000000000AA";
+        const secretKey = process.env.TURNSTILE_SECRET_KEY;
+        
+        if (!secretKey) {
+            console.error("[Auth] TURNSTILE_SECRET_KEY is not configured.");
+            return NextResponse.json(
+                { success: false, error: "Sistem anti-spam belum dikonfigurasi" },
+                { status: 500 }
+            );
+        }
 
         // Bypass actual API call if it's a known test environment dummy token
         let isTokenValid = false;

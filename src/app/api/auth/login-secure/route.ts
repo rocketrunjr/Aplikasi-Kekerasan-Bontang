@@ -18,11 +18,19 @@ export async function POST(req: NextRequest) {
 
         // 1. Verify Turnstile Captcha
         const isDevelopment = process.env.NODE_ENV === "development";
-        const secretKey =
-            process.env.TURNSTILE_SECRET_KEY || "1x0000000000000000000000000000000AA";
+        const secretKey = process.env.TURNSTILE_SECRET_KEY;
+        
+        if (!secretKey) {
+            console.error("[Auth] TURNSTILE_SECRET_KEY is not configured.");
+            return NextResponse.json(
+                { success: false, error: "Sistem anti-spam belum dikonfigurasi" },
+                { status: 500 }
+            );
+        }
 
         let isTokenValid = false;
-        if (isDevelopment && secretKey === "1x0000000000000000000000000000000AA") {
+        // In proper production you'd use a real token, or a proper test mechanism. For dev testing short tokens:
+        if (isDevelopment && token.length < 50) {
             isTokenValid = true;
         } else {
             const verifyRes = await fetch(

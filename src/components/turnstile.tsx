@@ -61,8 +61,11 @@ export function Turnstile({ onVerify, onExpire, onError, theme = "auto", size = 
     useEffect(() => {
         if (!loaded || !containerRef.current || !window.turnstile) return;
 
-        const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAACogNk_My3xmsjiR";
-
+        const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+        if (!siteKey) {
+            console.error("Turnstile site key not found in environment variables");
+            return;
+        }
         widgetId.current = window.turnstile.render(containerRef.current, {
             sitekey: siteKey,
             callback: (token) => onVerifyRef.current(token),

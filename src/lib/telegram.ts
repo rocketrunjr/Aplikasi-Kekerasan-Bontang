@@ -3,8 +3,8 @@ import { whatsappNotifications, user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
-const TELEGRAM_BOT_TOKEN = "8773849667:AAFUuOhfLAtWjBGS1r32v6kkFytRwx075gg";
-const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_API_URL = TELEGRAM_BOT_TOKEN ? `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage` : "";
 
 interface SendMessageOptions {
     chatId: string;
@@ -13,6 +13,10 @@ interface SendMessageOptions {
 }
 
 async function sendViaTelegram(chatId: string, message: string): Promise<boolean> {
+    if (!TELEGRAM_API_URL) {
+        console.error("[Telegram] TELEGRAM_BOT_TOKEN is not configured.");
+        return false;
+    }
     try {
         const response = await fetch(TELEGRAM_API_URL, {
             method: "POST",

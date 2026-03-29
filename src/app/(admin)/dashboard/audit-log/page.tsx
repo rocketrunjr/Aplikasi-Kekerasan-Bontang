@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
     Select,
@@ -67,6 +68,8 @@ const actionConfig: Record<
     },
 };
 
+const ITEMS_PER_PAGE = 10;
+
 function formatDate(iso: string) {
     const d = new Date(iso);
     return d.toLocaleDateString("id-ID", {
@@ -83,6 +86,7 @@ export default function AuditLogPage() {
     const [filterAction, setFilterAction] = useState<string>("ALL");
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         fetch("/api/audit-logs")
@@ -97,6 +101,16 @@ export default function AuditLogPage() {
             });
     }, []);
 
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        setCurrentPage(1);
+    };
+
+    const handleFilterAction = (value: string) => {
+        setFilterAction(value);
+        setCurrentPage(1);
+    };
+
     const filtered = logs.filter((log) => {
         const matchSearch =
             !search ||
@@ -105,6 +119,12 @@ export default function AuditLogPage() {
         const matchAction = filterAction === "ALL" || log.action === filterAction;
         return matchSearch && matchAction;
     });
+
+    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    const paginatedLogs = filtered.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     return (
         <div className="space-y-6">
@@ -126,11 +146,11 @@ export default function AuditLogPage() {
                     <Input
                         placeholder="Cari petugas atau ID laporan..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => handleSearch(e.target.value)}
                         className="rounded-xl pl-9"
                     />
                 </div>
-                <Select value={filterAction} onValueChange={setFilterAction}>
+                <Select value={filterAction} onValueChange={handleFilterAction}>
                     <SelectTrigger className="w-48 rounded-xl">
                         <SelectValue placeholder="Semua aksi" />
                     </SelectTrigger>
@@ -179,7 +199,7 @@ export default function AuditLogPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filtered.map((log) => {
+                            paginatedLogs.map((log) => {
                                 const ac = actionConfig[log.action];
                                 const AcIcon = ac?.icon || ScrollText;
                                 return (
@@ -218,6 +238,39 @@ export default function AuditLogPage() {
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between px-2">
+                    <p className="text-sm text-muted-foreground">
+                        Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1} hingga{" "}
+                        {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} dari {filtered.length} log
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            className="rounded-lg"
+                        >
+                            Sebelumnya
+                        </Button>
+                        <div className="text-sm font-medium">
+                            Halaman {currentPage} dari {totalPages}
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            className="rounded-lg"
+                        >
+                            Selanjutnya
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
