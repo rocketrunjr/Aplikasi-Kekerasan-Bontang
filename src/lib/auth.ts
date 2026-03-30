@@ -4,6 +4,11 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 
 export const auth = betterAuth({
+    trustedOrigins: [
+        "https://sisaka.vercel.app",
+        "http://localhost:3000",
+        ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+    ],
     database: drizzleAdapter(db, {
         provider: "sqlite",
         schema: {
