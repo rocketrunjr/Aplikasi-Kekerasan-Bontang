@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, Send, MapPin, Calendar, FileUp, Loader2, Users } from "lucide-react";
 import { Turnstile } from "@/components/turnstile";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getDeviceLocation } from "@/lib/location";
 
 const violenceTypes = [
     { id: "fisik", label: "Kekerasan Fisik" },
@@ -84,27 +85,13 @@ export default function LaporanPage() {
             let longitude = BONTANG_LNG;
 
             try {
-                const position = await Promise.race([
-                    new Promise<GeolocationPosition>((resolve, reject) => {
-                        if (!navigator.geolocation) {
-                            reject(new Error("not supported"));
-                            return;
-                        }
-                        navigator.geolocation.getCurrentPosition(resolve, reject, {
-                            enableHighAccuracy: true,
-                            timeout: 15000,
-                            maximumAge: 5000,
-                        });
-                    }),
-                    new Promise<never>((_, reject) => 
-                        setTimeout(() => reject(new Error("GPS timeout fallback")), 20000)
-                    )
-                ]);
-                latitude = position.coords.latitude;
-                longitude = position.coords.longitude;
-            } catch {
-                console.warn("GPS unavailable or timed out");
-                throw new Error("GPS_FAILED: Tidak bisa mendapatkan lokasi otomatis. Pastikan Lokasi (GPS) HP Anda menyala dan Anda telah memberikan izin pada browser.");
+                const pos = await getDeviceLocation();
+                latitude = pos.latitude;
+                longitude = pos.longitude;
+            } catch (err: unknown) {
+                const error = err as Error;
+                console.warn("GPS failed, showing strict warning:", error.message);
+                throw new Error(error.message);
             }
 
             // 2. Submit report
@@ -415,11 +402,11 @@ export default function LaporanPage() {
                                 </div>
                             )}
 
-                            {error && error.includes("GPS") && (
+                            {error && error.includes("Izin") && (
                                 <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-center">
                                     <h3 className="mb-1 text-sm font-bold text-destructive">Akses Lokasi Diblokir</h3>
                                     <p className="text-xs leading-relaxed text-destructive/90">
-                                        Sistem mengidentifikasi bahwa akses Lokasi (GPS) tidak diizinkan. Silakan klik ikon gembok <strong>(🔒)</strong> di baris URL browser Anda atas, pilih <strong>Izin (Permissions)</strong>, lalu nyalakan <strong>Lokasi (Location)</strong> untuk melanjutkan.
+                                        Browser mendeteksi izin lokasi belum diberikan. Ketuk ikon gembok <strong>(🔒)</strong> pada di kolom URL (link website di atas), lalu pilih menu <strong>Izin / Permissions</strong>, lalu ganti pilihan <strong>Lokasi (Location)</strong> menjadi <strong className="uppercase">Izinkan (Allow)</strong>. Setelah itu REFRESH ulang layar Anda.
                                     </p>
                                 </div>
                             )}

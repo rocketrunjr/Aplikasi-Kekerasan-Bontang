@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Turnstile } from "@/components/turnstile";
+import { getDeviceLocation } from "@/lib/location";
 
 interface PanicButtonProps {
     onClick?: () => void;
@@ -40,27 +41,13 @@ export function PanicButton({ onClick }: PanicButtonProps) {
             let longitude = BONTANG_LNG;
 
             try {
-                const position = await Promise.race([
-                    new Promise<GeolocationPosition>((resolve, reject) => {
-                        if (!navigator.geolocation) {
-                            reject(new Error("not supported"));
-                            return;
-                        }
-                        navigator.geolocation.getCurrentPosition(resolve, reject, {
-                            enableHighAccuracy: true,
-                            timeout: 15000,
-                            maximumAge: 5000,
-                        });
-                    }),
-                    new Promise<never>((_, reject) => 
-                        setTimeout(() => reject(new Error("GPS timeout fallback")), 20000)
-                    )
-                ]);
-                latitude = position.coords.latitude;
-                longitude = position.coords.longitude;
-            } catch {
-                console.warn("GPS unavailable or timed out, using fallback Bontang coordinates");
-                const proceed = window.confirm("PERINGATAN: Lokasi asli Anda gagal didapatkan (apakah GPS mati?).\n\nJika Anda lanjutkan, laporan akan dikirim dengan titik default (pusat kota).\n\nTetap teruskan laporan darurat?");
+                const pos = await getDeviceLocation();
+                latitude = pos.latitude;
+                longitude = pos.longitude;
+            } catch (err: unknown) {
+                const error = err as Error;
+                console.warn("GPS failed, showing warning before fallback:", error.message);
+                const proceed = window.confirm(`PERINGATAN LOKASI:\n${error.message}\n\nJika Anda LANJUTKAN, laporan akan tetap dikirim namun menggunakan titik default (pusat kota).\n\nTetap teruskan pesan darurat ini?`);
                 if (!proceed) {
                     setSending(false);
                     return;
