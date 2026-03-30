@@ -45,7 +45,7 @@ export default function PetugasDashboardPage() {
     useEffect(() => {
         if (!CURRENT_USER) return;
 
-        fetch("/api/reports")
+        fetch("/api/reports", { cache: "no-store" })
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {
@@ -56,7 +56,7 @@ export default function PetugasDashboardPage() {
                 console.error(err);
             });
 
-        fetch("/api/permissions")
+        fetch("/api/permissions", { cache: "no-store" })
             .then(res => res.json())
             .then(data => {
                 const myPerms = data.find((p: { userId: string, canViewData: boolean }) => p.userId === CURRENT_USER);

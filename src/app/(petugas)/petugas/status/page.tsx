@@ -91,7 +91,7 @@ export default function StatusPage() {
     useEffect(() => {
         if (!CURRENT_USER) return;
 
-        fetch("/api/reports")
+        fetch("/api/reports", { cache: "no-store" })
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {

@@ -103,7 +103,8 @@ export default function LaporanPage() {
                 latitude = position.coords.latitude;
                 longitude = position.coords.longitude;
             } catch {
-                console.warn("GPS unavailable or timed out, using fallback Bontang coordinates");
+                console.warn("GPS unavailable or timed out");
+                throw new Error("GPS_FAILED: Tidak bisa mendapatkan lokasi otomatis. Pastikan Lokasi (GPS) HP Anda menyala dan Anda telah memberikan izin pada browser.");
             }
 
             // 2. Submit report

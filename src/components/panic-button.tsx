@@ -59,8 +59,12 @@ export function PanicButton({ onClick }: PanicButtonProps) {
                 latitude = position.coords.latitude;
                 longitude = position.coords.longitude;
             } catch {
-                // GPS unavailable — silently use fallback coordinates (Bontang center)
                 console.warn("GPS unavailable or timed out, using fallback Bontang coordinates");
+                const proceed = window.confirm("PERINGATAN: Lokasi asli Anda gagal didapatkan (apakah GPS mati?).\n\nJika Anda lanjutkan, laporan akan dikirim dengan titik default (pusat kota).\n\nTetap teruskan laporan darurat?");
+                if (!proceed) {
+                    setSending(false);
+                    return;
+                }
             }
 
             // 2. Create panic report via API
