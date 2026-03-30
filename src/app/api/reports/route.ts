@@ -5,10 +5,6 @@ import { eq, desc, and, gte, lte } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
-// Simple in-memory rate limiter for Panic Button
-const ipRateLimit = new Map<string, number>();
-const RATE_LIMIT_WINDOW_MS = 60000; // 60 seconds
-
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
@@ -80,19 +76,8 @@ export async function POST(request: NextRequest) {
         } = body;
 
         // Rate Limiting Logic for Panic Buttons (Forms might have their own flow)
-        if (reportType === "PANIC_BUTTON") {
-            const ip = request.headers.get("x-forwarded-for") || "unknown-ip";
-            const nowMs = Date.now();
-            const lastRequestTime = ipRateLimit.get(ip);
-
-            if (lastRequestTime && nowMs - lastRequestTime < RATE_LIMIT_WINDOW_MS) {
-                return NextResponse.json(
-                    { error: "Too many requests. Please wait 60 seconds before sending another emergency alert." },
-                    { status: 429 }
-                );
-            }
-            ipRateLimit.set(ip, nowMs);
-        }
+        // Note: Memory-based IP rate limiting has been removed due to CGNAT false positives
+        // and because Turnstile already provides adequate protection.
 
         if (!victimName || !reportType || !latitude || !longitude) {
             return NextResponse.json(

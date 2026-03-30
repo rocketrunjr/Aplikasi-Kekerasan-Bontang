@@ -9,6 +9,26 @@ export const auth = betterAuth({
         "http://localhost:3000",
         ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
     ],
+    databaseHooks: {
+        user: {
+            create: {
+                after: async (user) => {
+                    try {
+                        await db.insert(schema.accessPermissions).values({
+                            userId: user.id as string,
+                            userName: user.name as string,
+                            userRole: (user.role as "admin" | "psikolog" | "petugas") || "petugas",
+                            canViewData: false,
+                            canEditData: false,
+                            canExportData: false,
+                        });
+                    } catch (error) {
+                        console.error("Failed to insert access permissions for new user:", error);
+                    }
+                }
+            }
+        }
+    },
     database: drizzleAdapter(db, {
         provider: "sqlite",
         schema: {

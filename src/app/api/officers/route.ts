@@ -14,7 +14,7 @@ export async function GET() {
             email: user.email,
             phone: user.phone,
             location: user.location,
-        }).from(user).where(inArray(user.role, ["psikolog", "petugas", "PSIKOLOG", "PETUGAS", "Psikolog", "Petugas"] as unknown as Array<"psikolog" | "petugas">));
+        }).from(user);
 
         const officerIds = officersQuery.map(o => o.id);
 
