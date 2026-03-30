@@ -14,8 +14,9 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { signOut } from "@/lib/auth-client";
 
-export function OfficerSidebar() {
+export function PetugasSidebar() {
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -29,7 +30,7 @@ export function OfficerSidebar() {
     const handleLogout = async () => {
         setIsLoggingOut(true);
         try {
-            await fetch("/api/auth/logout", { method: "POST" });
+            await signOut();
             window.location.href = "/";
         } catch (error) {
             console.error("Logout failed:", error);

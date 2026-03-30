@@ -19,7 +19,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
-
+import { signOut } from "@/lib/auth-client";
 
 export function AdminSidebar() {
     const pathname = usePathname();
@@ -40,7 +40,7 @@ export function AdminSidebar() {
     const handleLogout = async () => {
         setIsLoggingOut(true);
         try {
-            await fetch("/api/auth/logout", { method: "POST" });
+            await signOut();
             window.location.href = "/";
         } catch (error) {
             console.error("Logout failed:", error);

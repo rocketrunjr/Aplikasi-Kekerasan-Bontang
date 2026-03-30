@@ -91,13 +91,13 @@ export default function LaporanPage() {
                             return;
                         }
                         navigator.geolocation.getCurrentPosition(resolve, reject, {
-                            enableHighAccuracy: false,
-                            timeout: 10000,
-                            maximumAge: 60000,
+                            enableHighAccuracy: true,
+                            timeout: 15000,
+                            maximumAge: 5000,
                         });
                     }),
                     new Promise<never>((_, reject) => 
-                        setTimeout(() => reject(new Error("GPS timeout fallback")), 5000)
+                        setTimeout(() => reject(new Error("GPS timeout fallback")), 20000)
                     )
                 ]);
                 latitude = position.coords.latitude;

@@ -29,12 +29,6 @@ export function Navbar() {
                 {/* Desktop Nav */}
                 <div className="hidden items-center gap-4 md:flex">
                     <Link
-                        href="/"
-                        className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-                    >
-                        Beranda
-                    </Link>
-                    <Link
                         href="/laporan"
                         className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                     >
@@ -70,13 +64,6 @@ export function Navbar() {
             {menuOpen && (
                 <div className="border-t border-border/50 bg-background px-4 pb-4 pt-2 md:hidden">
                     <div className="flex flex-col gap-2">
-                        <Link
-                            href="/"
-                            onClick={() => setMenuOpen(false)}
-                            className="rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                        >
-                            Beranda
-                        </Link>
                         <Link
                             href="/laporan"
                             onClick={() => setMenuOpen(false)}
