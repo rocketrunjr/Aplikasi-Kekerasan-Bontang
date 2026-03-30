@@ -1,20 +1,16 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/libsql";
+import { createClient } from "@libsql/client";
 import * as schema from "./schema";
-import path from "path";
-import fs from "fs";
+import "dotenv/config"; // Ensure .env is loaded (helpful for local execution like cron/seeds)
 
-const dataDir = path.join(process.cwd(), "data");
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-}
+const databaseUrl = process.env.DATABASE_URL || "file:./data/sisaka.db";
+const authToken = process.env.TURSO_AUTH_TOKEN;
 
-const dbPath = path.join(dataDir, "sisaka.db");
-const sqlite = new Database(dbPath);
+// Create the LibSQL client (supports both remote Turso and local file database)
+const client = createClient({
+    url: databaseUrl,
+    authToken: authToken,
+});
 
-// Enable WAL mode for better performance
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
-
-export const db = drizzle(sqlite, { schema });
-export { sqlite };
+export const db = drizzle(client, { schema });
+export const sqlite = client; // Re-export client if needed manually, though Drizzle handles most workloads

@@ -6,7 +6,7 @@ async function seed() {
     console.log("🌱 Seeding database...");
 
     // Create tables
-    sqlite.exec(`
+    await sqlite.executeMultiple(`
         CREATE TABLE IF NOT EXISTS user (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -130,7 +130,7 @@ async function seed() {
 
     // Clear existing users to allow Better Auth to recreate them with passwords
     try {
-        sqlite.exec('DELETE FROM account; DELETE FROM session; DELETE FROM user;');
+        await sqlite.executeMultiple('DELETE FROM account; DELETE FROM session; DELETE FROM user;');
     } catch {
         // Ignore if tables don't exist yet
     }
@@ -190,8 +190,7 @@ async function seed() {
                     canEditData: u.role === "admin",
                     canExportData: u.role === "admin",
                 })
-                .onConflictDoNothing()
-                .run();
+                .onConflictDoNothing();
             console.log(`  ✅ Permissions seeded for ${u.name}`);
         }
     }
@@ -244,7 +243,7 @@ async function seed() {
             ...r,
             createdAt: now,
             updatedAt: now,
-        }).onConflictDoNothing().run();
+        }).onConflictDoNothing();
     }
 
     console.log("✅ Seed complete!");
