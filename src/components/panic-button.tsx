@@ -16,13 +16,35 @@ export function PanicButton({ onClick }: PanicButtonProps) {
     const [sending, setSending] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
     const [errorMsg, setErrorMsg] = useState("");
+    const [cooldown, setCooldown] = useState(0);
+    const [wasInCooldown, setWasInCooldown] = useState(false);
 
-    // Fix Hydration mismatch — only render Turnstile on client
     useEffect(() => {
         setMounted(true);
+        const lastPanic = localStorage.getItem("last_panic_time");
+        if (lastPanic) {
+            const timePassed = Math.floor((Date.now() - parseInt(lastPanic)) / 1000);
+            if (timePassed < 60) {
+                setCooldown(60 - timePassed);
+                setWasInCooldown(true);
+            }
+        }
     }, []);
 
+    useEffect(() => {
+        if (cooldown > 0) {
+            const timer = setTimeout(() => setCooldown(c => c - 1), 1000);
+            return () => clearTimeout(timer);
+        } else if (cooldown === 0 && wasInCooldown) {
+            window.location.reload();
+        }
+    }, [cooldown, wasInCooldown]);
+
     async function handlePanic() {
+        if (cooldown > 0) {
+            setErrorMsg(`Harap tunggu... Silakan coba lagi setelah ${cooldown} detik.`);
+            return;
+        }
         if (sending) return;
         if (!turnstileToken) {
             setErrorMsg("Menunggu verifikasi keamanan. Silakan coba sebentar lagi.");
@@ -78,13 +100,26 @@ export function PanicButton({ onClick }: PanicButtonProps) {
                 throw new Error(data.error || "Gagal mengirim laporan darurat");
             }
 
+            // Save successful request time for cooldown
+            localStorage.setItem("last_panic_time", Date.now().toString());
+            setCooldown(60);
+            setWasInCooldown(true);
+
             // 3. Callback + redirect on SUCCESS only
             onClick?.();
             router.push("/darurat");
         } catch (error) {
             console.error("Panic button error:", error);
             const errParam = error as Error;
-            setErrorMsg(errParam.message || "Gagal mengirim laporan darurat.");
+            
+            if (errParam.message && errParam.message.includes("Terlalu banyak permintaan")) {
+                localStorage.setItem("last_panic_time", Date.now().toString());
+                setCooldown(60);
+                setWasInCooldown(true);
+                setErrorMsg("Terlalu banyak permintaan darurat. Silakan tunggu 60 detik.");
+            } else {
+                setErrorMsg(errParam.message || "Gagal mengirim laporan darurat.");
+            }
 
             // Reset Turnstile token so they can try again
             setTurnstileToken(null);
@@ -103,7 +138,7 @@ export function PanicButton({ onClick }: PanicButtonProps) {
 
             <button
                 onClick={handlePanic}
-                disabled={sending || !turnstileToken}
+                disabled={sending || !turnstileToken || cooldown > 0}
                 className="group relative flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-br from-panic/90 to-panic shadow-lg shadow-panic/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-panic/30 active:scale-95 disabled:opacity-80 sm:h-48 sm:w-48"
                 aria-label="Tombol Panik — Kirim peringatan darurat"
             >
@@ -119,10 +154,10 @@ export function PanicButton({ onClick }: PanicButtonProps) {
                         <AlertTriangle className="h-10 w-10 text-white drop-shadow-md sm:h-12 sm:w-12" />
                     )}
                     <span className="text-lg font-extrabold uppercase tracking-wider text-white drop-shadow-md sm:text-xl">
-                        {sending ? "Mengirim..." : "Darurat"}
+                        {cooldown > 0 ? `${cooldown}s` : sending ? "Mengirim..." : "Darurat"}
                     </span>
                     <span className="text-[10px] font-medium uppercase tracking-widest text-white/70">
-                        {sending ? "Mengambil lokasi GPS" : "Tekan untuk bantuan"}
+                        {cooldown > 0 ? "Menunggu Jeda" : sending ? "Mengambil lokasi GPS" : "Tekan untuk bantuan"}
                     </span>
                 </span>
             </button>
