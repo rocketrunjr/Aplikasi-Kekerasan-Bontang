@@ -1,4 +1,4 @@
-import { OfficerSidebar } from "@/components/petugas/sidebar";
+import { PetugasSidebar } from "@/components/petugas/sidebar";
 
 export default function PetugasLayout({
     children,
@@ -7,7 +7,7 @@ export default function PetugasLayout({
 }) {
     return (
         <div className="flex min-h-screen bg-background">
-            <OfficerSidebar />
+            <PetugasSidebar />
             <main className="flex-1 overflow-auto p-6 lg:p-8">{children}</main>
         </div>
     );
