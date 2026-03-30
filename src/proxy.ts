@@ -4,8 +4,10 @@ export default async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     const { pathname } = request.nextUrl;
 
-    // Get session token from cookies
-    const sessionToken = request.cookies.get("better-auth.session_token")?.value;
+    // Get session token from cookies (checks both local and secure production formats)
+    const sessionToken = 
+        request.cookies.get("better-auth.session_token")?.value || 
+        request.cookies.get("__Secure-better-auth.session_token")?.value;
 
     // Protected routes that require authentication
     const isDashboard = pathname.startsWith("/dashboard");
